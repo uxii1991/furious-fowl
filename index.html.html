@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Furious Fowl 🐦</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+
+  :root {
+    --sky1: #87CEEB;
+    --sky2: #E0F4FF;
+    --ground: #5D8A2B;
+    --ground-dark: #3A6318;
+    --sun: #FFD700;
+    --red-bird: #E53935;
+    --yellow-bird: #FFB300;
+    --blue-bird: #1E88E5;
+    --pig: #66BB6A;
+    --pig-dark: #388E3C;
+    --wood: #8B6914;
+    --wood-light: #C49A2A;
+    --stone: #9E9E9E;
+    --stone-light: #BDBDBD;
+    --ui-bg: rgba(0,0,0,0.55);
+    --glow: 0 0 20px rgba(255,220,50,0.7);
+  }
+
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Fredoka One', cursive;
+    overflow: hidden;
+  }
+
+  #game-wrapper {
+    position: relative;
+    width: min(100vw, 480px);
+    height: min(100vh, 780px);
+    overflow: hidden;
+    border-radius: 24px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 0 3px #FFD700;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+
+  /* UI Overlays */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .score-box {
+    background: var(--ui-bg);
+    backdrop-filter: blur(6px);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 14px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 22px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+
+  .score-box span { font-size: 12px; opacity: 0.75; display: block; margin-bottom: 2px; font-family: 'Nunito', sans-serif; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+
+  #bird-queue {
+    position: absolute;
+    bottom: 110px; left: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .queue-bird {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(3px);
+    animation: float 2s ease-in-out infinite;
+  }
+  .queue-bird:nth-child(2) { animation-delay: 0.3s; }
+  .queue-bird:nth-child(3) { animation-delay: 0.6s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 20px;
+  }
+
+  #start-screen {
+    background: linear-gradient(180deg, #1B6CA8 0%, #87CEEB 60%, #5D8A2B 100%);
+  }
+
+  .game-title {
+    font-size: 52px;
+    color: #fff;
+    text-shadow: 0 4px 0 #B71C1C, 0 6px 12px rgba(0,0,0,0.4);
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .game-subtitle {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    color: #FFD700;
+    font-size: 15px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .bird-preview {
+    font-size: 80px;
+    animation: bounce 0.8s ease-in-out infinite alternate;
+    margin-bottom: 30px;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3));
+  }
+  @keyframes bounce {
+    from { transform: translateY(0) rotate(-5deg); }
+    to { transform: translateY(-15px) rotate(5deg); }
+  }
+
+  .btn {
+    background: linear-gradient(135deg, #FFD700, #FF8C00);
+    border: none;
+    border-radius: 50px;
+    padding: 16px 48px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 26px;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 0 #B05E00, 0 8px 20px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transform: translateY(0);
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #B05E00, 0 4px 10px rgba(0,0,0,0.3); }
+
+  .btn-secondary {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    box-shadow: 0 6px 0 #1B5E20, 0 8px 20px rgba(0,0,0,0.3);
+    margin-top: 12px;
+    font-size: 20px;
+    padding: 12px 36px;
+  }
+  .btn-secondary:active { box-shadow: 0 2px 0 #1B5E20, 0 4px 10px rgba(0,0,0,0.3); }
+
+  #result-screen {
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(12px);
+  }
+
+  .result-title {
+    font-size: 56px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .result-score {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: #FFD700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .result-points {
+    font-size: 48px;
+    color: #fff;
+    margin-bottom: 30px;
+    text-shadow: var(--glow);
+  }
+
+  .stars {
+    font-size: 42px;
+    margin-bottom: 24px;
+    letter-spacing: 6px;
+  }
+
+  /* Trajectory dots */
+  .traj-hint {
+    position: absolute;
+    bottom: 140px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.4);
+    padding: 4px 12px;
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  #level-badge {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--ui-bg);
+    backdrop-filter: blur(6px);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 14px;
+    padding: 4px 16px;
+    color: #FFD700;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .instructions {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    background: rgba(0,0,0,0.2);
+    padding: 12px 20px;
+    border-radius: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <div class="score-box"><span>Score</span><span id="score-val">0</span></div>
+    <div class="score-box"><span>Best</span><span id="best-val">0</span></div>
+  </div>
+
+  <div id="level-badge">Level <span id="level-num">1</span></div>
+
+  <div id="bird-queue"></div>
+
+  <!-- Start Screen -->
+  <div class="screen" id="start-screen">
+    <div class="bird-preview">🐦</div>
+    <div class="game-title">Furious<br>Fowl</div>
+    <div class="game-subtitle">Slingshot Mayhem</div>
+    <div class="instructions">Drag & release the bird to launch!<br>Destroy all the 🐷 pigs to win!</div>
+    <button class="btn" onclick="startGame()">▶ PLAY!</button>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="screen" id="result-screen" style="display:none">
+    <div class="result-title" id="result-emoji">🎉</div>
+    <div class="result-title" id="result-text" style="font-size:36px;color:#fff;text-shadow:0 3px 0 #333"></div>
+    <div class="result-score">Your Score</div>
+    <div class="result-points" id="result-points">0</div>
+    <div class="stars" id="result-stars">⭐⭐⭐</div>
+    <button class="btn" onclick="nextLevel()">Next Level 🐦</button>
+    <button class="btn btn-secondary" onclick="startGame()">Restart</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- Responsive sizing ---
+const DESIGN_W = 480, DESIGN_H = 780;
+let W = DESIGN_W, H = DESIGN_H;
+
+function resize() {
+  const wrapper = document.getElementById('game-wrapper');
+  W = wrapper.clientWidth;
+  H = wrapper.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+resize();
+
+// --- Physics constants ---
+const GRAVITY = 0.35;
+const SLING_X = () => W * 0.18;
+const SLING_Y = () => H * 0.66;
+const GROUND_Y = () => H * 0.82;
+const STRUCTURE_X = () => W * 0.58;
+
+// --- Game state ---
+let state = 'idle'; // idle | aiming | flying | settling | won | lost
+let score = 0, bestScore = 0, level = 1;
+let birds = [], pigs = [], blocks = [], particles = [];
+let currentBird = null;
+let dragStart = null, dragCurrent = null;
+let settleTimer = 0;
+let trajectoryPoints = [];
+
+// --- Bird types ---
+const BIRD_TYPES = [
+  { emoji: '🐦', color: '#E53935', r: 18, power: 1.0, label: 'Red' },
+  { emoji: '💛', color: '#FFB300', r: 16, power: 1.3, label: 'Yellow', special: 'speed' },
+  { emoji: '💙', color: '#1E88E5', r: 14, power: 0.8, label: 'Blue', special: 'split' },
+];
+
+// --- Level configs ---
+const LEVELS = [
+  { birds: [0,0,0], structure: buildLevel1 },
+  { birds: [0,1,0,0], structure: buildLevel2 },
+  { birds: [0,1,2,0], structure: buildLevel3 },
+  { birds: [0,1,2,0,0], structure: buildLevel4 },
+];
+
+function getLevelConfig() {
+  return LEVELS[Math.min(level - 1, LEVELS.length - 1)];
+}
+
+// =========== LEVEL BUILDERS ===========
+function buildLevel1() {
+  const sx = STRUCTURE_X(), gy = GROUND_Y();
+  blocks = [
+    { x: sx, y: gy - 30, w: 80, h: 30, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 90, y: gy - 30, w: 80, h: 30, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 45, y: gy - 75, w: 80, h: 30, type: 'wood', hp: 2, vx: 0, vy: 0 },
+  ];
+  pigs = [
+    { x: sx + 20, y: gy - 55, r: 22, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 115, y: gy - 55, r: 22, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+  ];
+}
+function buildLevel2() {
+  const sx = STRUCTURE_X(), gy = GROUND_Y();
+  blocks = [
+    { x: sx - 10, y: gy - 30, w: 20, h: 70, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 80, y: gy - 30, w: 20, h: 70, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx - 10, y: gy - 90, w: 110, h: 20, type: 'stone', hp: 5, vx: 0, vy: 0 },
+    { x: sx + 100, y: gy - 30, w: 20, h: 70, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 100, y: gy - 90, w: 60, h: 20, type: 'wood', hp: 2, vx: 0, vy: 0 },
+  ];
+  pigs = [
+    { x: sx + 45, y: gy - 118, r: 20, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 130, y: gy - 118, r: 20, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 45, y: gy - 55, r: 18, hp: 1, maxHp: 1, vx: 0, vy: 0 },
+  ];
+}
+function buildLevel3() {
+  const sx = STRUCTURE_X() - 20, gy = GROUND_Y();
+  blocks = [
+    { x: sx, y: gy - 30, w: 20, h: 80, type: 'stone', hp: 5, vx: 0, vy: 0 },
+    { x: sx + 70, y: gy - 30, w: 20, h: 80, type: 'stone', hp: 5, vx: 0, vy: 0 },
+    { x: sx + 140, y: gy - 30, w: 20, h: 80, type: 'stone', hp: 5, vx: 0, vy: 0 },
+    { x: sx, y: gy - 100, w: 160, h: 20, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 30, y: gy - 30, w: 20, h: 50, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 100, y: gy - 30, w: 20, h: 50, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 30, y: gy - 130, w: 100, h: 20, type: 'stone', hp: 5, vx: 0, vy: 0 },
+  ];
+  pigs = [
+    { x: sx + 45, y: gy - 60, r: 20, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 115, y: gy - 60, r: 20, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 80, y: gy - 160, r: 22, hp: 3, maxHp: 3, vx: 0, vy: 0 },
+  ];
+}
+function buildLevel4() {
+  const sx = STRUCTURE_X() - 40, gy = GROUND_Y();
+  blocks = [
+    { x: sx, y: gy - 30, w: 20, h: 90, type: 'stone', hp: 6, vx: 0, vy: 0 },
+    { x: sx + 60, y: gy - 30, w: 20, h: 90, type: 'stone', hp: 6, vx: 0, vy: 0 },
+    { x: sx + 120, y: gy - 30, w: 20, h: 90, type: 'stone', hp: 6, vx: 0, vy: 0 },
+    { x: sx + 180, y: gy - 30, w: 20, h: 90, type: 'stone', hp: 6, vx: 0, vy: 0 },
+    { x: sx, y: gy - 108, w: 200, h: 20, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 20, y: gy - 170, w: 20, h: 60, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 80, y: gy - 170, w: 20, h: 60, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 140, y: gy - 170, w: 20, h: 60, type: 'wood', hp: 3, vx: 0, vy: 0 },
+    { x: sx + 20, y: gy - 190, w: 140, h: 20, type: 'stone', hp: 5, vx: 0, vy: 0 },
+    { x: sx + 50, y: gy - 30, w: 20, h: 60, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 110, y: gy - 30, w: 20, h: 60, type: 'wood', hp: 2, vx: 0, vy: 0 },
+    { x: sx + 50, y: gy - 78, w: 80, h: 20, type: 'wood', hp: 2, vx: 0, vy: 0 },
+  ];
+  pigs = [
+    { x: sx + 35, y: gy - 65, r: 18, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 95, y: gy - 65, r: 18, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 155, y: gy - 65, r: 18, hp: 2, maxHp: 2, vx: 0, vy: 0 },
+    { x: sx + 95, y: gy - 140, r: 20, hp: 3, maxHp: 3, vx: 0, vy: 0 },
+    { x: sx + 90, y: gy - 215, r: 22, hp: 4, maxHp: 4, vx: 0, vy: 0 },
+  ];
+}
+
+// =========== INIT ===========
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  level = 1; score = 0;
+  loadLevel();
+}
+
+function loadLevel() {
+  document.getElementById('level-num').textContent = level;
+  document.getElementById('score-val').textContent = score;
+  const cfg = getLevelConfig();
+  cfg.structure();
+  birds = cfg.birds.map(t => ({ ...BIRD_TYPES[t] }));
+  particles = [];
+  currentBird = null;
+  dragStart = null;
+  dragCurrent = null;
+  state = 'idle';
+  updateQueue();
+  nextBird();
+}
+
+function nextBird() {
+  if (birds.length === 0) {
+    currentBird = null;
+    state = 'settling';
+    settleTimer = 90;
+    return;
+  }
+  const bType = birds.shift();
+  currentBird = {
+    ...bType,
+    x: SLING_X(), y: SLING_Y(),
+    vx: 0, vy: 0,
+    launched: false,
+    trail: [],
+    special_used: false,
+    alive: true
+  };
+  state = 'aiming';
+  updateQueue();
+}
+
+function updateQueue() {
+  const el = document.getElementById('bird-queue');
+  el.innerHTML = birds.map(b => `<div class="queue-bird">${BIRD_TYPES[b] ? BIRD_TYPES[b].emoji : '🐦'}</div>`).join('');
+}
+
+// =========== INPUT ===========
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width, scaleY = H / rect.height;
+  if (e.touches) {
+    return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+  }
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('touchstart', onDown, { passive: false });
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('touchmove', onMove, { passive: false });
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('touchend', onUp);
+
+function onDown(e) {
+  e.preventDefault();
+  if (state !== 'aiming') return;
+  const pos = getPos(e);
+  const dx = pos.x - currentBird.x, dy = pos.y - currentBird.y;
+  if (Math.sqrt(dx*dx + dy*dy) < 50) {
+    dragStart = { x: currentBird.x, y: currentBird.y };
+    dragCurrent = pos;
+    state = 'dragging';
+  }
+}
+
+function onMove(e) {
+  e.preventDefault();
+  if (state !== 'dragging') return;
+  dragCurrent = getPos(e);
+  computeTrajectory();
+}
+
+function onUp(e) {
+  e.preventDefault();
+  if (state !== 'dragging') return;
+  launch();
+}
+
+// Double tap for special ability
+canvas.addEventListener('dblclick', useSpecial);
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2 && state === 'flying') useSpecial();
+}, { passive: false });
+
+let lastTap = 0;
+canvas.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTap < 300 && state === 'flying') useSpecial();
+  lastTap = now;
+});
+
+function useSpecial() {
+  if (!currentBird || currentBird.special_used || state !== 'flying') return;
+  currentBird.special_used = true;
+  if (currentBird.special === 'speed') {
+    currentBird.vx *= 2.2;
+    currentBird.vy *= 0.3;
+    spawnParticles(currentBird.x, currentBird.y, '#FFD700', 15);
+  } else if (currentBird.special === 'split') {
+    // spawn 2 extra mini-birds
+    for (let i = -1; i <= 1; i += 2) {
+      const mini = {
+        ...BIRD_TYPES[2], x: currentBird.x, y: currentBird.y,
+        vx: currentBird.vx + i * 1.5, vy: currentBird.vy - 1,
+        launched: true, trail: [], special_used: true, alive: true, r: 10
+      };
+      pigs.forEach(p => { /* mini will be handled in update */ });
+      setTimeout(() => {
+        if (state === 'flying') {
+          // add mini to a temp array
+          extraBirds.push(mini);
+        }
+      }, 0);
+    }
+    spawnParticles(currentBird.x, currentBird.y, '#1E88E5', 20);
+  }
+}
+
+let extraBirds = [];
+
+function computeTrajectory() {
+  if (!dragStart || !dragCurrent) return;
+  const PULL_LIMIT = 90;
+  let dx = dragCurrent.x - dragStart.x;
+  let dy = dragCurrent.y - dragStart.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > PULL_LIMIT) { dx *= PULL_LIMIT/dist; dy *= PULL_LIMIT/dist; }
+
+  const vx0 = -dx * 0.18 * currentBird.power;
+  const vy0 = -dy * 0.18 * currentBird.power;
+  trajectoryPoints = [];
+  let tx = dragStart.x + dx, ty = dragStart.y + dy;
+  let tvx = vx0, tvy = vy0;
+  for (let i = 0; i < 35; i++) {
+    tvx += 0; tvy += GRAVITY;
+    tx += tvx; ty += tvy;
+    if (ty > GROUND_Y()) break;
+    trajectoryPoints.push({ x: tx, y: ty });
+  }
+}
+
+function launch() {
+  if (!dragStart || !dragCurrent || !currentBird) { state = 'aiming'; return; }
+  const PULL_LIMIT = 90;
+  let dx = dragCurrent.x - dragStart.x;
+  let dy = dragCurrent.y - dragStart.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist < 10) { state = 'aiming'; dragStart = null; dragCurrent = null; return; }
+  if (dist > PULL_LIMIT) { dx *= PULL_LIMIT/dist; dy *= PULL_LIMIT/dist; }
+
+  currentBird.x = dragStart.x + dx;
+  currentBird.y = dragStart.y + dy;
+  currentBird.vx = -dx * 0.18 * currentBird.power;
+  currentBird.vy = -dy * 0.18 * currentBird.power;
+  currentBird.launched = true;
+  state = 'flying';
+  dragStart = null; dragCurrent = null;
+  trajectoryPoints = [];
+}
+
+// =========== PHYSICS UPDATE ===========
+function update() {
+  if (state === 'flying') {
+    updateBird(currentBird);
+    extraBirds.forEach(b => updateBird(b));
+    extraBirds = extraBirds.filter(b => b.alive);
+    updateBlocks();
+    updatePigs();
+    checkCollisions(currentBird);
+    extraBirds.forEach(b => checkCollisions(b));
+
+    if (!currentBird.alive || currentBird.y > H + 50) {
+      currentBird = null;
+      extraBirds = [];
+      state = 'settling';
+      settleTimer = 80;
+    }
+  }
+
+  if (state === 'settling') {
+    settleTimer--;
+    updateBlocks();
+    updatePigs();
+    if (settleTimer <= 0) {
+      if (pigs.length === 0) {
+        // Win
+        score += birds.length * 1000 + level * 500;
+        showResult(true);
+      } else if (birds.length === 0) {
+        showResult(false);
+      } else {
+        nextBird();
+      }
+    }
+  }
+
+  // Particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.15;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function updateBird(bird) {
+  if (!bird || !bird.alive) return;
+  bird.vy += GRAVITY;
+  bird.x += bird.vx;
+  bird.y += bird.vy;
+  bird.trail.push({ x: bird.x, y: bird.y });
+  if (bird.trail.length > 18) bird.trail.shift();
+
+  if (bird.y + bird.r >= GROUND_Y()) {
+    bird.y = GROUND_Y() - bird.r;
+    bird.vy *= -0.3;
+    bird.vx *= 0.7;
+    if (Math.abs(bird.vy) < 2) bird.alive = false;
+    spawnParticles(bird.x, bird.y, bird.color, 6);
+  }
+  if (bird.x > W + 50 || bird.x < -50) bird.alive = false;
+}
+
+function updateBlocks() {
+  blocks.forEach(b => {
+    if (!b.alive) return;
+    b.vy = (b.vy || 0) + GRAVITY * 0.3;
+    b.vx = (b.vx || 0) * 0.92;
+    b.y += b.vy;
+    b.x += b.vx;
+    if (b.y + b.h >= GROUND_Y()) {
+      b.y = GROUND_Y() - b.h;
+      b.vy *= -0.2;
+      b.vx *= 0.8;
+      if (Math.abs(b.vy) < 1) b.vy = 0;
+    }
+  });
+}
+
+function updatePigs() {
+  pigs.forEach(p => {
+    p.vy = (p.vy || 0) + GRAVITY * 0.3;
+    p.vx = (p.vx || 0) * 0.92;
+    p.y += p.vy;
+    p.x += p.vx;
+    if (p.y + p.r >= GROUND_Y()) {
+      p.y = GROUND_Y() - p.r;
+      p.vy *= -0.2;
+      p.vx *= 0.8;
+    }
+  });
+}
+
+function checkCollisions(bird) {
+  if (!bird || !bird.alive) return;
+
+  // Bird vs pigs
+  pigs.forEach((pig, i) => {
+    const dx = bird.x - pig.x, dy = bird.y - pig.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < bird.r + pig.r) {
+      const dmg = Math.sqrt(bird.vx*bird.vx + bird.vy*bird.vy) * 0.6;
+      pig.hp -= dmg;
+      pig.vx += (dx/dist) * 6;
+      pig.vy += (dy/dist) * 4 - 3;
+      spawnParticles(pig.x, pig.y, '#66BB6A', 12);
+      score += 100;
+      if (pig.hp <= 0) {
+        pigs.splice(i, 1);
+        score += 500;
+        spawnParticles(pig.x, pig.y, '#FFD700', 25);
+        spawnScorePopup(pig.x, pig.y, '+500');
+      }
+      bird.vx *= 0.4; bird.vy *= 0.4;
+      document.getElementById('score-val').textContent = score;
+    }
+  });
+
+  // Bird vs blocks
+  blocks.forEach((b, i) => {
+    if (b.hp <= 0) return;
+    if (bird.x + bird.r > b.x && bird.x - bird.r < b.x + b.w &&
+        bird.y + bird.r > b.y && bird.y - bird.r < b.y + b.h) {
+      const speed = Math.sqrt(bird.vx*bird.vx + bird.vy*bird.vy);
+      const dmg = speed * 0.5;
+      b.hp -= dmg;
+      b.vx += bird.vx * 0.5;
+      b.vy += bird.vy * 0.3 - 2;
+      spawnParticles(bird.x, bird.y, b.type === 'wood' ? '#8B6914' : '#9E9E9E', 8);
+      score += 50;
+      if (b.hp <= 0) {
+        blocks.splice(i, 1);
+        score += 200;
+        spawnParticles(b.x + b.w/2, b.y + b.h/2, b.type === 'wood' ? '#C49A2A' : '#BDBDBD', 20);
+      }
+      bird.vx *= 0.35; bird.vy *= 0.35;
+      document.getElementById('score-val').textContent = score;
+    }
+  });
+}
+
+// Score popups (simple particles with text)
+let scorePopups = [];
+function spawnScorePopup(x, y, text) {
+  scorePopups.push({ x, y, text, life: 60, maxLife: 60 });
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 5 + 1;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      color,
+      r: Math.random() * 5 + 2,
+      life: Math.floor(Math.random() * 30 + 20)
+    });
+  }
+}
+
+// =========== DRAW ===========
+function draw() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#1B6CA8');
+  sky.addColorStop(0.5, '#87CEEB');
+  sky.addColorStop(1, '#C8E6FF');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  drawBackground();
+  drawGround();
+  drawSlingshot();
+  drawTrajectory();
+  drawBlocks();
+  drawPigs();
+  drawParticles();
+  if (state === 'aiming' || state === 'dragging') drawAimBird();
+  if (state === 'flying' || state === 'settling') {
+    if (currentBird) drawBirdInFlight(currentBird);
+    extraBirds.forEach(b => drawBirdInFlight(b));
+  }
+  drawScorePopups();
+}
+
+function drawBackground() {
+  // Sun
+  ctx.save();
+  const sunX = W * 0.82, sunY = H * 0.12;
+  const gradient = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 60);
+  gradient.addColorStop(0, 'rgba(255,220,50,0.9)');
+  gradient.addColorStop(0.5, 'rgba(255,200,0,0.4)');
+  gradient.addColorStop(1, 'rgba(255,200,0,0)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 60, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath(); ctx.arc(sunX, sunY, 26, 0, Math.PI * 2); ctx.fill();
+
+  // Clouds
+  drawCloud(W*0.15, H*0.1, 0.8);
+  drawCloud(W*0.5, H*0.07, 1.0);
+  drawCloud(W*0.72, H*0.18, 0.7);
+
+  // Background hills
+  ctx.fillStyle = 'rgba(100,160,60,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(W*0.2, GROUND_Y()+20, 120, 60, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(W*0.75, GROUND_Y()+10, 90, 50, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCloud(x, y, scale) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.shadowColor = 'rgba(0,0,0,0.1)';
+  ctx.shadowBlur = 10;
+  const r = 22 * scale;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + r*1.1, y + r*0.2, r*0.85, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x - r*1.0, y + r*0.3, r*0.75, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + r*0.5, y - r*0.5, r*0.7, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawGround() {
+  const gy = GROUND_Y();
+  // Grass top
+  ctx.fillStyle = '#5D8A2B';
+  ctx.fillRect(0, gy - 4, W, 16);
+
+  // Detail grass blades
+  ctx.fillStyle = '#4CAF50';
+  for (let x = 0; x < W; x += 14) {
+    const h = 6 + Math.sin(x * 0.3) * 4;
+    ctx.fillRect(x, gy - 4 - h, 3, h);
+  }
+
+  // Dirt fill
+  const dirt = ctx.createLinearGradient(0, gy + 12, 0, H);
+  dirt.addColorStop(0, '#8B6914');
+  dirt.addColorStop(1, '#5D4E0A');
+  ctx.fillStyle = dirt;
+  ctx.fillRect(0, gy + 12, W, H - gy - 12);
+}
+
+function drawSlingshot() {
+  const sx = SLING_X(), sy = SLING_Y(), gy = GROUND_Y();
+  ctx.save();
+  ctx.strokeStyle = '#5D3A00';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+
+  // Left fork
+  ctx.beginPath(); ctx.moveTo(sx - 6, gy); ctx.quadraticCurveTo(sx - 8, sy + 20, sx - 22, sy - 12); ctx.stroke();
+  // Right fork
+  ctx.beginPath(); ctx.moveTo(sx + 6, gy); ctx.quadraticCurveTo(sx + 8, sy + 20, sx + 22, sy - 12); ctx.stroke();
+
+  // Band
+  if ((state === 'aiming' || state === 'dragging') && dragCurrent) {
+    const PULL_LIMIT = 90;
+    let dx = dragCurrent.x - { x: sx, y: sy }.x;
+    let dy = dragCurrent.y - { x: sx, y: sy }.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > PULL_LIMIT) { dx *= PULL_LIMIT/dist; dy *= PULL_LIMIT/dist; }
+    const bx = sx + dx, by = sy + dy;
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(sx - 22, sy - 12); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx + 22, sy - 12); ctx.lineTo(bx, by); ctx.stroke();
+  } else {
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sx - 22, sy - 12); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx + 22, sy - 12); ctx.lineTo(sx, sy); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawTrajectory() {
+  if (state !== 'dragging' || trajectoryPoints.length === 0) return;
+  ctx.save();
+  trajectoryPoints.forEach((p, i) => {
+    const alpha = (1 - i / trajectoryPoints.length) * 0.7;
+    const r = 5 - i * 0.12;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(r, 1.5), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawBlocks() {
+  blocks.forEach(b => {
+    if (b.hp <= 0) return;
+    ctx.save();
+    const isWood = b.type === 'wood';
+    const baseColor = isWood ? '#8B6914' : '#757575';
+    const lightColor = isWood ? '#C49A2A' : '#BDBDBD';
+    const borderColor = isWood ? '#5D4A0A' : '#424242';
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(b.x + 4, b.y + 4, b.w, b.h);
+
+    // Block face
+    ctx.fillStyle = lightColor;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+    // Side shadow
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(b.x + b.w - 4, b.y + 4, 4, b.h);
+    ctx.fillRect(b.x + 4, b.y + b.h - 4, b.w - 4, 4);
+
+    // Border
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+    // Damage cracks
+    if (b.hp < b.maxHp * 0.6) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(b.x + b.w * 0.3, b.y + b.h * 0.2);
+      ctx.lineTo(b.x + b.w * 0.6, b.y + b.h * 0.6);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(b.x + b.w * 0.7, b.y + b.h * 0.1);
+      ctx.lineTo(b.x + b.w * 0.4, b.y + b.h * 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function drawPigs() {
+  pigs.forEach(pig => {
+    ctx.save();
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(pig.x + 3, pig.y + pig.r + 2, pig.r * 0.9, pig.r * 0.4, 0, 0, Math.PI*2); ctx.fill();
+
+    // Body
+    const hpRatio = pig.hp / pig.maxHp;
+    const bodyColor = hpRatio > 0.6 ? '#66BB6A' : hpRatio > 0.3 ? '#FFCA28' : '#EF5350';
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.arc(pig.x, pig.y, pig.r, 0, Math.PI*2); ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.arc(pig.x - pig.r*0.3, pig.y - pig.r*0.3, pig.r*0.45, 0, Math.PI*2); ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(pig.x - pig.r*0.35, pig.y - pig.r*0.15, pig.r*0.28, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pig.x + pig.r*0.35, pig.y - pig.r*0.15, pig.r*0.28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(pig.x - pig.r*0.32, pig.y - pig.r*0.12, pig.r*0.14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pig.x + pig.r*0.32, pig.y - pig.r*0.12, pig.r*0.14, 0, Math.PI*2); ctx.fill();
+
+    // Snout
+    ctx.fillStyle = '#81C784';
+    ctx.beginPath(); ctx.ellipse(pig.x, pig.y + pig.r*0.3, pig.r*0.38, pig.r*0.26, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#388E3C';
+    ctx.beginPath(); ctx.arc(pig.x - pig.r*0.15, pig.y + pig.r*0.3, pig.r*0.09, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pig.x + pig.r*0.15, pig.y + pig.r*0.3, pig.r*0.09, 0, Math.PI*2); ctx.fill();
+
+    // Eyebrows (angry!)
+    ctx.strokeStyle = '#2E7D32';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pig.x - pig.r*0.55, pig.y - pig.r*0.45);
+    ctx.lineTo(pig.x - pig.r*0.18, pig.y - pig.r*0.38);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pig.x + pig.r*0.55, pig.y - pig.r*0.45);
+    ctx.lineTo(pig.x + pig.r*0.18, pig.y - pig.r*0.38);
+    ctx.stroke();
+
+    // Ears
+    ctx.fillStyle = '#4CAF50';
+    ctx.beginPath(); ctx.arc(pig.x - pig.r*0.75, pig.y - pig.r*0.7, pig.r*0.22, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pig.x + pig.r*0.75, pig.y - pig.r*0.7, pig.r*0.22, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore();
+  });
+}
+
+function drawAimBird() {
+  if (!currentBird) return;
+  ctx.save();
+  let bx = currentBird.x, by = currentBird.y;
+  if (state === 'dragging' && dragCurrent) {
+    const PULL_LIMIT = 90;
+    let dx = dragCurrent.x - SLING_X(), dy = dragCurrent.y - SLING_Y();
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > PULL_LIMIT) { dx *= PULL_LIMIT/dist; dy *= PULL_LIMIT/dist; }
+    bx = SLING_X() + dx; by = SLING_Y() + dy;
+  }
+  drawBirdAt(ctx, currentBird, bx, by, 1);
+  ctx.restore();
+}
+
+function drawBirdInFlight(bird) {
+  if (!bird || !bird.alive) return;
+  ctx.save();
+  // Trail
+  bird.trail.forEach((p, i) => {
+    const alpha = (i / bird.trail.length) * 0.5;
+    ctx.beginPath(); ctx.arc(p.x, p.y, bird.r * (i / bird.trail.length) * 0.8, 0, Math.PI*2);
+    ctx.fillStyle = bird.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+  });
+  drawBirdAt(ctx, bird, bird.x, bird.y, 1);
+  ctx.restore();
+}
+
+function drawBirdAt(ctx, bird, x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  const r = bird.r * scale;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(3, r + 2, r * 0.9, r * 0.35, 0, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.fillStyle = bird.color;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath(); ctx.arc(-r*0.3, -r*0.3, r*0.4, 0, Math.PI*2); ctx.fill();
+
+  // Eyes
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-r*0.25, -r*0.15, r*0.32, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.arc(-r*0.22, -r*0.1, r*0.16, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-r*0.16, -r*0.14, r*0.07, 0, Math.PI*2); ctx.fill();
+
+  // Beak
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.moveTo(r*0.3, -r*0.1);
+  ctx.lineTo(r*0.8, 0);
+  ctx.lineTo(r*0.3, r*0.1);
+  ctx.closePath(); ctx.fill();
+
+  // Angry brow
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-r*0.5, -r*0.48);
+  ctx.lineTo(-r*0.05, -r*0.38);
+  ctx.stroke();
+
+  // Tail feathers
+  ctx.fillStyle = bird.color;
+  ctx.beginPath();
+  ctx.moveTo(-r, 0);
+  ctx.lineTo(-r*1.5, -r*0.5);
+  ctx.lineTo(-r*1.2, 0.2);
+  ctx.lineTo(-r*1.5, r*0.3);
+  ctx.lineTo(-r, r*0.2);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life / 40;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawScorePopups() {
+  scorePopups = scorePopups.filter(p => p.life > 0);
+  scorePopups.forEach(p => {
+    const alpha = p.life / p.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold 20px Fredoka One, cursive';
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.textAlign = 'center';
+    const dy = (p.maxLife - p.life) * 0.8;
+    ctx.strokeText(p.text, p.x, p.y - dy);
+    ctx.fillText(p.text, p.x, p.y - dy);
+    p.life--;
+    ctx.restore();
+  });
+}
+
+// =========== RESULT ===========
+function showResult(won) {
+  state = won ? 'won' : 'lost';
+  const rs = document.getElementById('result-screen');
+  rs.style.display = 'flex';
+
+  if (won) {
+    document.getElementById('result-emoji').textContent = '🎉';
+    document.getElementById('result-text').textContent = 'Level Clear!';
+    const stars = score > level * 2500 ? '⭐⭐⭐' : score > level * 1500 ? '⭐⭐' : '⭐';
+    document.getElementById('result-stars').textContent = stars;
+  } else {
+    document.getElementById('result-emoji').textContent = '💥';
+    document.getElementById('result-text').textContent = 'Try Again!';
+    document.getElementById('result-stars').textContent = '😤';
+  }
+
+  document.getElementById('result-points').textContent = score.toLocaleString();
+  if (score > bestScore) {
+    bestScore = score;
+    document.getElementById('best-val').textContent = bestScore;
+  }
+
+  document.getElementById('next-btn') && (document.getElementById('next-btn').style.display = won ? '' : 'none');
+}
+
+function nextLevel() {
+  if (state === 'won') level = Math.min(level + 1, LEVELS.length);
+  document.getElementById('result-screen').style.display = 'none';
+  loadLevel();
+}
+
+// =========== GAME LOOP ===========
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// =========== INIT ===========
+// Init blocks with maxHp
+function initMaxHp() {
+  const HP = { wood: 4, stone: 8 };
+  blocks.forEach(b => { b.maxHp = HP[b.type] || 4; b.hp = b.maxHp; });
+}
+
+// Override level builders to init HP
+const _orig = [buildLevel1, buildLevel2, buildLevel3, buildLevel4];
+function wrapBuilder(fn) {
+  return function() { fn(); initMaxHp(); };
+}
+LEVELS[0].structure = wrapBuilder(_orig[0]);
+LEVELS[1].structure = wrapBuilder(_orig[1]);
+LEVELS[2].structure = wrapBuilder(_orig[2]);
+LEVELS[3].structure = wrapBuilder(_orig[3]);
+
+document.getElementById('score-val').textContent = '0';
+document.getElementById('best-val').textContent = '0';
+gameLoop();
+</script>
+</body>
+</html>
