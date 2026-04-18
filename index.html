@@ -1163,5 +1163,10 @@ document.getElementById('score-val').textContent = '0';
 document.getElementById('best-val').textContent = '0';
 gameLoop();
 </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/furious-fowl/sw.js');
+  }
+</script>
 </body>
 </html>
