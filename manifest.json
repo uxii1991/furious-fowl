@@ -3,20 +3,42 @@
   "short_name": "Furious Fowl",
   "description": "Launch birds, destroy pig castles and beat all levels!",
   "start_url": "/furious-fowl/",
+  "scope": "/furious-fowl/",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#1B6CA8",
   "theme_color": "#1B6CA8",
+  "lang": "en",
+  "dir": "ltr",
+  "id": "/furious-fowl/",
+  "categories": ["games", "entertainment"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://uxii1991.github.io/furious-fowl/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "https://uxii1991.github.io/furious-fowl/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://uxii1991.github.io/furious-fowl/screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "https://uxii1991.github.io/furious-fowl/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }
