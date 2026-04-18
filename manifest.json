@@ -1,0 +1,22 @@
+{
+  "name": "Furious Fowl",
+  "short_name": "Furious Fowl",
+  "description": "Launch birds, destroy pig castles and beat all levels!",
+  "start_url": "/furious-fowl/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#1B6CA8",
+  "theme_color": "#1B6CA8",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
